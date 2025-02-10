@@ -1,13 +1,9 @@
 #!/usr/bin/env python3
-# Purpose: <TODO>
+# Purpose: Generate harmonies using Jazz Chord Sequences Grammer
 #
-# This program currently just provides some code that you might find useful as
-# you work on your first composition lab. Please remove this comment (and any
-# unused starter code) and explain your actual program once you have a plan for
-# your composition!
 # 
-# Author(s): <TODO>
-# Date: <TODO>
+# Author(s): Jake Kerrigan and Milo Goldstien
+# Date: 02/10/26
 
 
 import sys
@@ -28,35 +24,48 @@ def build_triad(root):
 # other useful functions in the 'serial' module of the music21 library
 p10 = serial.TwelveToneRow([10, 9, 4, 5, 6, 3, 2, 8, 7, 11, 0, 1]) 
 
+def derive0(s, k):
+    d = duration.Duration(2.0)
+    s.insert(0,(derive1(roman.RomanNumeral('I', k, duration = d))))
+    s.append(roman.RomanNumeral('I7', k, duration = d))
+    s.append(roman.RomanNumeral('IV7', k, duration = d))
+    s.append(roman.RomanNumeral('I', k, duration = d))
+    s.append(roman.RomanNumeral('V7', k, duration = d))
+    s.append(roman.RomanNumeral('I', k, duration = d))
+
+
+def derive1(x):
+    expansion = stream.Stream()
+    newDuration = duration.Duration(x.duration.quarterLength / 2)
+    expansion.append(chord.Chord(x, duration = newDuration))
+    major_seventh_interval = interval.Interval("M7")
+    major_seventh_note = major_seventh_interval.transposePitch(x.root())
+    secondChord = chord.Chord(x, duration = newDuration)
+    secondChord.add(major_seventh_note)
+    expansion.append(secondChord)
+    return expansion.flatten()
+
+
+
+
+
+
 def main():
     k = key.Key('C')
-    Cmaj = build_triad(C_MIDI) #building a C major triad via midi values
-    stream1 = stream.Stream()
-    stream1.append(Cmaj)
-    # Generating chords given a harmonic function and key
-    stream1.append(roman.RomanNumeral('I', k))
-    stream1.append(roman.RomanNumeral('V7', k))
-    stream1.append(roman.RomanNumeral('VIIo7', k))
-    # One stream can't have more than one of the same object at the same level of
-    # stream hierarchy. So if I want to insert another Cmaj chord I have to 
-    # generate a fresh one (see what happens if you just have "append(Cmaj)")!
-    stream1.append(chord.Chord(Cmaj)) 
+    s = stream.Stream()
+    derive0(s, k)
+    s = s.flatten()
 
-    # Let's kick things off with a banjo playing the chords
-    stream1.insert(0, instrument.Banjo())
-    # And then, assuming there are at least 4 chords, start playing the violin
-    # from the 3rd onwards
-    if len(stream1) > 2:
-        stream1.insert(3, instrument.Violin())
+
 
     # Play midi, output sheet music, or print the contents of the stream
-    print(len(stream1))
+    print(len(s))
     if ("-m" in sys.argv):
-        stream1.show('midi')
+        s.show('midi')
     elif ("-s" in sys.argv):
-        stream1.show()
+        s.show()
     else:
-        stream1.show('text')
+        s.show('text')
 
 if __name__ == "__main__":
     main()
