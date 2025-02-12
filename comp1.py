@@ -25,7 +25,7 @@ p10 = serial.TwelveToneRow([10, 9, 4, 5, 6, 3, 2, 8, 7, 11, 0, 1])
 
 def derive0(k):
     s = stream.Stream()
-    d = duration.Duration(2.0)
+    d = duration.Duration(8.0)
     #test out derive 1
     s.insert(0, derive1(roman.RomanNumeral('I', k, duration = d)))
     
@@ -33,11 +33,12 @@ def derive0(k):
     
     s.append(roman.RomanNumeral('IV7', k, duration = d))
     #test out drive 2
-    s.append(6, derive2(roman.RomanNumeral('I', k, duration = d)))
+    s.insert(24, derive2(roman.RomanNumeral('I', k, duration = d)))
 
     s.append(roman.RomanNumeral('V7', k, duration = d))
     
     s.append(roman.RomanNumeral('I', k, duration = d))
+
     return s
 
 
@@ -52,7 +53,7 @@ def derive1(x):
     diminutedChord = (chord.Chord(x, duration = newDuration))
     expansion.append(diminutedChord)
     expansion.append(makeDominant(diminutedChord))
-    return expansion.flatten()
+    return expansion
 
 # x represents the chord within the stream you want to derive
 def derive2(x):
@@ -73,7 +74,7 @@ def derive3a(w, x, minor):
         sys.stderr.write("derive3a: unable to derive non-dominant chord\n")
         return x
     replacement = stream.Stream()
-    domDuration = w.duration.quarterLength
+    domDuration = w.duration.quarterLength / 2
     if (minor):
         replacement.append(roman.RomanNumeral('v7', key.Key(x.root().name), duration = domDuration))
     else:
@@ -87,7 +88,7 @@ def derive3b(w, x):
         sys.stderr.write("derive3a: unable to derive non-minor-dominant chord\n")
         return x
     replacement = stream.Stream()
-    domDuration = w.duration.quarterLength
+    domDuration = w.duration
     replacement.append(roman.RomanNumeral('V7', key.Key(x.root().name), duration = domDuration))
     replacement.append(x)
     return replacement.flatten()
@@ -99,7 +100,7 @@ def derive4(d, x):
         sys.stderr.write("derive4: Chord not recognized\n")
         return x
     replacement = stream.Stream()
-    superTonDuration = d.duration.quarterLength
+    superTonDuration = d.duration
     quality = x.quality
     if (quality == 'minor'):
         replacement.append(roman.RomanNumeral('ii-7', key.Key(x.root().name), duration = superTonDuration))
@@ -111,16 +112,15 @@ def derive4(d, x):
 def derive5(x):
     replacement = stream.Stream()
     replacement.append(x)
-    replacement.append(roman.RomanNumeral('ii', key.Key(x.root().name), duration = x.duration.quarterLength))
-    replacement.append(roman.RomanNumeral('iii', key.Key(x.root().name), duration = x.duration.quarterLength))
+    replacement.append(roman.RomanNumeral('ii', key.Key(x.root().name), duration = x.duration))
+    replacement.append(roman.RomanNumeral('iii', key.Key(x.root().name), duration = x.duration))
     return replacement.flatten()
 
-def derive6(x, w):
 
 def makeDominant(x):
     major_seventh_interval = interval.Interval("M7")
     major_seventh_note = major_seventh_interval.transposePitch(x.root())
-    secondChord = chord.Chord(x)
+    secondChord = chord.Chord(x, duration = x.duration)
     secondChord.add(major_seventh_note)
     return (secondChord)
 
@@ -129,9 +129,12 @@ def makeDominant(x):
 def main():
     k = key.Key('C')
     s = derive0(k)
+    s = stream.tools.removeDuplicates(s)
     s = s.flatten()
 
-
+    #print names of chords
+    for el in s.recurse():
+        print(el.root().name + " " + el.commonName + " " + str(el.duration.quarterLength) + " beats")
 
     # Play midi, output sheet music, or print the contents of the stream
     print(len(s))
