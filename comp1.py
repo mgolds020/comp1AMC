@@ -75,7 +75,7 @@ def derive3a(w, x, minor):
     replacement = stream.Stream()
     domDuration = w.duration.quarterLength
     if (minor):
-        replacement.append(roman.RomanNumeral('V-7', key.Key(x.root().name), duration = domDuration))
+        replacement.append(roman.RomanNumeral('v7', key.Key(x.root().name), duration = domDuration))
     else:
         replacement.append(roman.RomanNumeral('V7', key.Key(x.root().name), duration = domDuration))
     replacement.append(x)
@@ -92,13 +92,38 @@ def derive3b(w, x):
     replacement.append(x)
     return replacement.flatten()
 
+def derive4(d, x):
+    
+    name = x.commonName
+    if not(name == 'minor seventh chord' or name == 'minor triad' or name == 'dominant seventh chord' or name == 'major triad'):
+        sys.stderr.write("derive4: Chord not recognized\n")
+        return x
+    replacement = stream.Stream()
+    superTonDuration = d.duration.quarterLength
+    quality = x.quality
+    if (quality == 'minor'):
+        replacement.append(roman.RomanNumeral('ii-7', key.Key(x.root().name), duration = superTonDuration))
+    else:
+        replacement.append(roman.RomanNumeral('II-7', key.Key(x.root().name), duration = superTonDuration))
+    replacement.append(x)
+    return replacement.flatten()
+
+def derive5(x):
+    replacement = stream.Stream()
+    replacement.append(x)
+    replacement.append(roman.RomanNumeral('ii', key.Key(x.root().name), duration = x.duration.quarterLength))
+    replacement.append(roman.RomanNumeral('iii', key.Key(x.root().name), duration = x.duration.quarterLength))
+    return replacement.flatten()
+
+def derive6(x, w):
+
 def makeDominant(x):
     major_seventh_interval = interval.Interval("M7")
     major_seventh_note = major_seventh_interval.transposePitch(x.root())
     secondChord = chord.Chord(x)
     secondChord.add(major_seventh_note)
     return (secondChord)
-    
+
 
 
 def main():
