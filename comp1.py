@@ -28,17 +28,18 @@ def derive0(k):
     d = duration.Duration(8.0)
 
     #test out derive 1
-    s.append(roman.RomanNumeral('I', k, duration = d))
-    
-    s.append(roman.RomanNumeral('I7[b7]', k, duration = d))
-    
-    s.append(roman.RomanNumeral('IV7[b7]', k, duration = d))
 
-    s.append(roman.RomanNumeral('I', k, duration = d))
+    s.append(chord.Chord(roman.RomanNumeral('I', k), duration = d))
 
-    s.append(roman.RomanNumeral('V7', k, duration = d))
+    s.append(chord.Chord(roman.RomanNumeral('I7[b7]', k), duration = d))
     
-    s.append(roman.RomanNumeral('I', k, duration = d))
+    s.append(chord.Chord(roman.RomanNumeral('IV7[b7]', k), duration = d))
+
+    s.append(chord.Chord(roman.RomanNumeral('I', k), duration = d))
+
+    s.append(chord.Chord(roman.RomanNumeral('V7', k), duration = d))
+    
+    s.append(chord.Chord(roman.RomanNumeral('I', k), duration = d))
 
     return s
 
@@ -72,18 +73,32 @@ def applyDerive2(s):
 
 def applyDerive3a(s):
     index = choice(range(len(s) - 1))
-    chordToDerive = s[index]
-    nextChordToDerive = s[(index + 1)]
+    chordToDerive = chord.Chord(s[index], duration = s[index].duration)
+    nextChordToDerive = chord.Chord(s[(index + 1)], duration = s[(index + 1)].duration)
+    
+    for el in s.recurse():
+        print(el.root().name + " " + el.commonName + " " + str(el.duration.quarterLength) + " beats")    
+        
     while(chordToDerive.duration.quarterLength < 4.0):
         index = choice(range(len(s) - 1))
         chordToDerive = s[index]
     offset = chordToDerive.offset
-    s.pop(index + 1)
+
+    print("deriving chord " + chordToDerive.root().name + " " + chordToDerive.commonName + " at offset: " + str(offset))
+
+    s.pop(index)
     s.pop(index)
     isMinor = choice(range(1))
-    s.insert(offset, derive3a(chordToDerive, nextChordToDerive, isMinor))
+    s.insert(offset, derive3a(chordToDerive, nextChordToDerive, False))
     s = s.flatten()
 
+    print("new stream: ")
+
+        
+    for el in s.recurse():
+        print(el.root().name + " " + el.commonName + " " + str(el.duration.quarterLength) + " beats")    
+
+    print("----------------------")
 
 # x represents the chord within the stream you want to derive
 #splits and adds minor 7
@@ -96,7 +111,7 @@ def derive1(x):
     newDuration = duration.Duration(x.duration.quarterLength / 2)
     diminutedChord = (chord.Chord(x, duration = newDuration))
     expansion.append(diminutedChord)
-    expansion.append(roman.RomanNumeral('I-7', key.Key(diminutedChord.root().name), duration = newDuration))
+    expansion.append(chord.Chord(roman.RomanNumeral('I-7', key.Key(diminutedChord.root().name)), duration = newDuration))
     return expansion.flatten()
 
 # x represents the chord within the stream you want to derive
@@ -110,7 +125,7 @@ def derive2(x):
     newDuration = duration.Duration(x.duration.quarterLength / 2)
     diminutedChord = (chord.Chord(x, duration = newDuration))
     expansion.append(diminutedChord)
-    expansion.append(roman.RomanNumeral('IV-7', key.Key(x.root().name), duration = newDuration))
+    expansion.append(chord.Chord(roman.RomanNumeral('IV-7', key.Key(x.root().name)), duration = newDuration))
     return expansion.flatten()
 
 
@@ -123,12 +138,12 @@ def derive3a(w, x, minor):
     totalDur = w.duration.quarterLength + x.duration.quarterLength
     domDuration = w.duration
     if (minor):
-        replacement.append(roman.RomanNumeral('v-7', key.Key(x.root().name), duration = domDuration))
+        replacement.append(chord.Chord(roman.RomanNumeral('V-7', key.Key(x.root().name)), duration = domDuration))
     else:
-        replacement.append(roman.RomanNumeral('V-7', key.Key(x.root().name), duration = domDuration))
+        replacement.append(chord.Chord(roman.RomanNumeral('V7', key.Key(x.root().name)), duration = domDuration))
     
-    remainingDur = duration.Duration((totalDur - domDuration.quarterLength))
-    replacement.append(chord.Chord(x, duration = remainingDur))
+    # remainingDur = duration.Duration((totalDur - domDuration.quarterLength))
+    replacement.append(chord.Chord(x, duration = x.duration))
     return replacement.flatten()
 
 # def derive3b(w, x):
@@ -154,17 +169,17 @@ def derive4(d, x):
     superTonDuration = d.duration
     quality = x.quality
     if (quality == 'minor'):
-        replacement.append(roman.RomanNumeral('bii-7', key.Key(x.root().name), duration = superTonDuration))
+        replacement.append(chord.Chord(roman.RomanNumeral('bii-7', key.Key(x.root().name)), duration = superTonDuration))
     else:
-        replacement.append(roman.RomanNumeral('bII-7', key.Key(x.root().name), duration = superTonDuration))
+        replacement.append(chord.Chord(roman.RomanNumeral('bII-7', key.Key(x.root().name)), duration = superTonDuration))
     replacement.append(x)
     return replacement.flatten()
 
 def derive5(x):
     replacement = stream.Stream()
     replacement.append(chord.Chord(x, x.duration))
-    replacement.append(roman.RomanNumeral('ii', key.Key(x.root().name), duration = x.duration))
-    replacement.append(roman.RomanNumeral('iii', key.Key(x.root().name), duration = x.duration))
+    replacement.append(chord.Chord(roman.RomanNumeral('ii', key.Key(x.root().name)), duration = x.duration))
+    replacement.append(chord.Chord(roman.RomanNumeral('iii', key.Key(x.root().name)), duration = x.duration))
     return replacement.flatten()
 
 
@@ -177,9 +192,10 @@ def makeDominant(x):
 
 def testDerive3Unequal():
     k = key.Key("C")
-    full = duration.Duration(4.0)
-    half = duration.Duration(1.0)
-    derive3a(roman.RomanNumeral('I', k, duration = half), roman.RomanNumeral('I', k, duration = full), False).show()
+
+    full = duration.Duration(8.0)
+    half = duration.Duration(4.0)
+    derive3a(roman.RomanNumeral('I', k, duration = full), roman.RomanNumeral('V7', k, duration = full), False).show()
 
     print("----------------")
     
@@ -189,11 +205,9 @@ def main():
     #testDerive3Unequal()
     k = key.Key('C')
     s = derive0(k)
-    
-    applyDerive3a(s)
     s = s.flatten()
 
-    s = stream.tools.removeDuplicates(s)
+    # s = stream.tools.removeDuplicates(s)
 
     for i in range(5):
         applyDerive1(s)
