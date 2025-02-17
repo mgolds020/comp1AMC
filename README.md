@@ -63,6 +63,8 @@ rhythms.
 # Visualization/Demonstration
 
 <figure>
+    
+![Alt text](grammerRules.png)
 
 </figure>
 
@@ -74,12 +76,12 @@ the RHS minor 50 percent of the time) The below output represents 1
 applying each rule once to the current 12 bar blues phrase.
 
 <figure>
-
+![Alt text](simpleOutput.png)
 </figure>
 
 Unfortunately, some of the derivations can cancel each other out.
 Derivation 3 and 4 both effectively delete a chord, so seeing where each
-derivation was applied can be difficult. One clear example in the below
+derivation was applied can be difficult. One clear example in the above
 output is measure 8. This is an application of rule 4; we can see that
 the program replaced the chord in measure 8 with the dominate flat
 superTonic relative to the root of the following chord: G dominate, (or
