@@ -7,27 +7,21 @@
 
 import sys
 from music21 import *
+import math
+import copy
 
 #Useful Python functions (choice and choices) to randomly select something from
 #a collection
 from random import choice, choices 
 
-C_MIDI = 60  #middle C in midi notation
-
-# Given an integer representing a pitch in midi notation, build up a major triad
-# with that pitch as the root.
-def build_major_triad(root):
-    return chord.Chord([root, root + 4, root + 7])
-
-# Build a 12-tone row from pcs, after which you can manipulate the row using
-# other useful functions in the 'serial' module of the music21 library
-p10 = serial.TwelveToneRow([10, 9, 4, 5, 6, 3, 2, 8, 7, 11, 0, 1])
+#harmony generation
 
 def derive0(k):
-    s = stream.Stream()
+    s = stream.Part()
     d = duration.Duration(8.0)
 
     #test out derive 1
+
 
     s.append(chord.Chord(roman.RomanNumeral('I', k), duration = d))
 
@@ -42,49 +36,65 @@ def derive0(k):
     s.append(chord.Chord(roman.RomanNumeral('I', k), duration = d))
 
     return s
+    
 
-# def applyDerive4(s):
-#     lastChord = None
-#     for chord in s.recurse():
-#         if(lastChord):
-#             el
+
+def isFith(chord1, chord2):
+    major_seventh_interval = interval.Interval("p5")
+    perfect_fith_note = major_seventh_interval.transposePitch(chord2.root())
+    return chord1.root() == perfect_fith_note
 
 def applyDerive1(s):
-    index = choice(range(len(s)))
+
+    iterationCounter = 0
+
+    index = skewedIndexGenerator(len(s))
     chordToDerive = s[index]
-    while(chordToDerive.duration.quarterLength < 4.0):
-        index = choice(range(len(s)))
+
+    while(chordToDerive.duration.quarterLength < minDuration * 2):
+        if(iterationCounter > len(s)):
+            return
+        
+        index = skewedIndexGenerator(len(s))
         chordToDerive = s[index]
+        iterationCounter += 1
+
     offset = chordToDerive.offset
     s.pop(index)
     s.insert(offset, derive1(chordToDerive))
     s = s.flatten()
 
 def applyDerive2(s):
-    index = choice(range(len(s)))
+    iterationCounter = 0
+    index = skewedIndexGenerator(len(s))
     chordToDerive = s[index]
-    while(chordToDerive.duration.quarterLength < 4.0):
-        index = choice(range(len(s)))
+
+    while(chordToDerive.duration.quarterLength < minDuration * 2):
+        if(iterationCounter > len(s)):
+            return
+        
+        index = skewedIndexGenerator(len(s))
         chordToDerive = s[index]
+
+        iterationCounter += 1
+
+
+        
     offset = chordToDerive.offset
     s.pop(index)
     s.insert(offset, derive2(chordToDerive))
     s = s.flatten()
 
 def applyDerive3a(s):
-    index = choice(range(len(s) - 1))
-    chordToDerive = chord.Chord(s[index], duration = s[index].duration)
-    nextChordToDerive = chord.Chord(s[(index + 1)], duration = s[(index + 1)].duration)
-    
-    for el in s.recurse():
-        print(el.root().name + " " + el.commonName + " " + str(el.duration.quarterLength) + " beats")    
+
+
+    index = skewedIndexGenerator(len(s) - 1)
+    chordToDerive = s[index]
+    nextChordToDerive = s[(index + 1)]
         
-    while(chordToDerive.duration.quarterLength < 4.0):
-        index = choice(range(len(s) - 1))
-        chordToDerive = s[index]
+
     offset = chordToDerive.offset
 
-    print("deriving chord " + chordToDerive.root().name + " " + chordToDerive.commonName + " at offset: " + str(offset))
 
     s.pop(index)
     s.pop(index)
@@ -92,13 +102,46 @@ def applyDerive3a(s):
     s.insert(offset, derive3a(chordToDerive, nextChordToDerive, False))
     s = s.flatten()
 
-    print("new stream: ")
 
         
-    for el in s.recurse():
-        print(el.root().name + " " + el.commonName + " " + str(el.duration.quarterLength) + " beats")    
+   
 
-    print("----------------------")
+
+
+def applyDerive4(s):
+    
+    iterationCounter = 1
+
+    index = skewedIndexGenerator(len(s) - 1)
+    chordToDerive = s[index]
+    nextChordToDerive = s[(index + 1)]
+    
+    
+
+    triToneSubable = isFith(chordToDerive, nextChordToDerive)
+
+
+    while(triToneSubable):
+
+        if(iterationCounter > len(s)):
+            return
+
+        index = skewedIndexGenerator(len(s) - 1)
+        chordToDerive = s[index]
+        nextChordToDerive = s[index + 1]
+        triToneSubable = isFith(chordToDerive, nextChordToDerive)
+        iterationCounter += 1
+    
+    offset = chordToDerive.offset
+
+
+    s.pop(index)
+    s.pop(index)
+    s.insert(offset, derive4(chordToDerive, nextChordToDerive))
+    s = s.flatten()
+
+
+
 
 # x represents the chord within the stream you want to derive
 #splits and adds minor 7
@@ -146,17 +189,6 @@ def derive3a(w, x, minor):
     replacement.append(chord.Chord(x, duration = x.duration))
     return replacement.flatten()
 
-# def derive3b(w, x):
-#     name = x.commonName
-#     # if (name != 'minor seventh chord'):
-#     #     sys.stderr.write("derive3a: unable to derive non-minor-dominant chord\n")
-#     #     return chord.Chord(x, duration = duration.Duration(x.duration.quarterLength + w.duration.quarterLength))
-#     replacement = stream.Stream()
-#     domDuration = w.duration
-#     replacement.append(roman.RomanNumeral('V7', key.Key(x.root().name), duration = domDuration))
-#     replacement.append(chord.Chord(x, duration = x.duration))
-#     return replacement.flatten()
-
 
 #tri-tone sub
 def derive4(d, x):
@@ -175,14 +207,6 @@ def derive4(d, x):
     replacement.append(x)
     return replacement.flatten()
 
-def derive5(x):
-    replacement = stream.Stream()
-    replacement.append(chord.Chord(x, x.duration))
-    replacement.append(chord.Chord(roman.RomanNumeral('ii', key.Key(x.root().name)), duration = x.duration))
-    replacement.append(chord.Chord(roman.RomanNumeral('iii', key.Key(x.root().name)), duration = x.duration))
-    return replacement.flatten()
-
-
 def makeDominant(x):
     major_seventh_interval = interval.Interval("M7")
     major_seventh_note = major_seventh_interval.transposePitch(x.root())
@@ -190,51 +214,202 @@ def makeDominant(x):
     secondChord.add(major_seventh_note)
     return (secondChord)
 
+
+# generates a 0-indexed index based on length parameter that is random but
+# tends to be a larger index
+
+def skewedIndexGenerator(length):
+    intialIndex  = math.ceil(length / 2)
+
+    index = intialIndex + choice(range(int(length / 2)))
+
+    #50% chance to normalize index by getting by subtracting 
+
+    if(choice(range(1))):
+        index -= choice(range(int(length / 2)))
+    return index
+
+
+
+#testing functions:
+
+
 def testDerive3Unequal():
     k = key.Key("C")
 
-    full = duration.Duration(8.0)
-    half = duration.Duration(4.0)
-    derive3a(roman.RomanNumeral('I', k, duration = full), roman.RomanNumeral('V7', k, duration = full), False).show()
+    derivation1 = derive1(chord.Chord(roman.RomanNumeral('I', k), duration = duration.Duration(8.0)))
+    
+    #derive3a(derivation1[1], derivation1[0], False).show()
 
-    print("----------------")
+    applyDerive3a(derivation1)
+
+    derivation1.flatten().show()
+
+    derivation1.show('text')
+
+
+#melody generation
+
+def retrograde(sequence):
+    sequence.reverse()
+    return sequence
+
+def inversion(sequence):
+    newList = []
+    for i in range(len(sequence) - 1):
+        newList.append((4 - sequence[i + 1]) - sequence[i])
+    for i in range(len(newList)):
+        sequence[i + 1] = ((sequence[i] + newList[i]) % 5)
+    return sequence
+
+def retrogradeInversion(sequence):
+    return inversion(retrograde(sequence))
+
+def transposition(sequence, number):
+    for i in range(len(sequence)):
+        sequence[i] = ((sequence[i] + number) % 5)
+    return sequence
+
+
+def makeMinBlues(key):
+    return [pitch.Pitch(key.tonic.midi),
+            pitch.Pitch(key.tonic.midi + 2),
+            pitch.Pitch(key.tonic.midi + 3),
+            pitch.Pitch(key.tonic.midi + 5),
+            pitch.Pitch(key.tonic.midi + 6),
+            pitch.Pitch(key.tonic.midi + 7),
+            pitch.Pitch(key.tonic.midi + 10)
+            ]
+
+
+def applyRhythms(rhythmSequence, key):
+    bluesScaleArray = makeMinBlues(key)
+    noteStream = stream.Stream()
+    for index in rhythmSequence:
+        if   (index == 0):
+            noteStream.append(note.Note(choice(bluesScaleArray), duration = duration.Duration(1.0)))
+        elif (index == 1):
+            noteStream.append(note.Rest(1.0))
+        elif (index == 2):
+            noteStream.append(note.Note(choice(bluesScaleArray), duration = duration.Duration(0.5)))
+            noteStream.append(note.Note(choice(bluesScaleArray), duration = duration.Duration(0.5)))
+        elif (index == 3):
+            noteStream.append(note.Note(choice(bluesScaleArray), duration = duration.Duration(0.5)))
+            noteStream.append(note.Rest(0.5))
+        else:
+            noteStream.append(note.Rest(0.5))
+            noteStream.append(note.Note(choice(bluesScaleArray), duration = duration.Duration(0.5)))
+    
+    return noteStream
+
+def makeNoteSequence(key):
+    rhythmsSection1n2 = choices(range(5),  k=16)
+    rhythmsSection3 = choices(range(5),  k=16)
+    functions = [retrograde, inversion, retrogradeInversion, transposition]
+    for i in range(4):
+        transformation = choice(functions)
+        if (transformation == transposition):
+            randAdjustment = choice(range(5))
+            transformation(rhythmsSection1n2, randAdjustment)
+            transformation(rhythmsSection3, randAdjustment)
+        else:
+            transformation(rhythmsSection1n2)
+            transformation(rhythmsSection3)
+    streamSection1n2 = applyRhythms(rhythmsSection1n2, key)
+    streamSection3 = applyRhythms(rhythmsSection3, key)
+    duplicatedStream = stream.Part()
+    duplicatedStream.insert(0, streamSection1n2)
+    duplicatedStream.insert(16, copy.deepcopy(streamSection1n2))
+    duplicatedStream.insert(32, streamSection3)
+    return duplicatedStream
+
+
+        
+
     
 
 
+
+#testing code:
+    # rhythms = choices(range(5),  k=16)
+    # print(rhythms)
+    # retrograde(rhythms)
+    # print(rhythms)
+    # retrograde(rhythms)
+    # print(rhythms)
+    # inversion(rhythms)
+    # print(rhythms)
+    # transposition(rhythms, 2)
+    # print(rhythms)
+
+
+
+
+
+
 def main():
-    #testDerive3Unequal()
-    k = key.Key('C')
+    # testDerive3Unequal()
+    print("Welcome to Blues Harmony Generator!")
+    print("This program uses a grammer based system to perfrom derivations on a standard 12 bar blues!")
+    k = key.Key(input("Please enter the key you would like the blues to be in: (e.x C) "))
+    derivations = int(input("Please enter how many rounds of derivations you would like to perform: (e.x 3) "))
+    global minDuration
+    minDuration = int(input("Please enter the minimum chord length duration in quarter notes: (e.x 2) "))
+    
+
     s = derive0(k)
     s = s.flatten()
 
     # s = stream.tools.removeDuplicates(s)
 
-    for i in range(5):
+    for i in range(derivations):
         applyDerive1(s)
         s = s.flatten()
+        
         applyDerive3a(s)
         s = s.flatten()
+        
+        applyDerive4(s)
+        s = s.flatten()
+    
+    melodyStream = makeNoteSequence(k)
+    melodyStream.insert(48, copy.deepcopy(melodyStream))
+    melodyStream = melodyStream.flatten()
+    # melodyStream.show()
 
-            
-    for el in s.recurse():
-        print(el.root().name + " " + el.commonName + " " + str(el.duration.quarterLength) + " beats")
-
-
+    harmonyStream = s
+    harmonyStream.insert(48, copy.deepcopy(s))
+    harmonyStream = harmonyStream.flatten()
 
     
+    harmonyStream.insert(0, instrument.ElectricPiano())
+    
+
+    finalStream = stream.Score()
+    finalStream.insert(0, harmonyStream)
+    finalStream.insert(0, melodyStream)
+    finalStream = stream.tools.removeDuplicates(finalStream)
+
+
+    finalStream.insert(0, metadata.Metadata())
+    finalStream.metadata.title = '12 Bar Blues (2 times)'
+    finalStream.metadata.composer = 'Jake Kerrigan and Milo Goldstein'
+
+
+
 
     #print names of chords
     # for el in s.recurse():
     #     print(el.root().name + " " + el.commonName + " " + str(el.duration.quarterLength) + " beats")
 
     # Play midi, output sheet music, or print the contents of the stream
-    print(len(s))
+    
     if ("-m" in sys.argv):
-        s.show('midi')
+        finalStream('midi')
     elif ("-s" in sys.argv):
-        s.show()
+        finalStream.show()
     else:
-        s.show('text')
+        finalStream.show('text')
 
 if __name__ == "__main__":
     main()
