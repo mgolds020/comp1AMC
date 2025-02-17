@@ -78,7 +78,7 @@ applying each rule once to the current 12 bar blues phrase.
 
 <figure>
     
-![Alt text](simpleOutput.png)
+![Alt text](../exampleOutputs/simpleOutput.png)
 
     
 </figure>
