@@ -76,7 +76,10 @@ the RHS minor 50 percent of the time) The below output represents 1
 applying each rule once to the current 12 bar blues phrase.
 
 <figure>
+    
 ![Alt text](simpleOutput.png)
+
+    
 </figure>
 
 Unfortunately, some of the derivations can cancel each other out.
