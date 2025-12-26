@@ -5,6 +5,11 @@ date: February 2025 - 10 Hours
 title: "Composition 1: Blues Harmony Generator"
 ---
 
+# About
+
+CLI tool that generates 12-bar blues composition using a combination of both grammar-based and serialization-based approaches.
+
+
 # How To Run
 
 To run Comp1.py you must have music21 installed in the active environment.
